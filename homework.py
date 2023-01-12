@@ -1,5 +1,26 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
+
+
+class InvalidInputDataError(Exception):
+    """Исключение, возникшее из-за ошибок в полученных данных от датчиков.
+
+    Args:
+        err (Union[KeyError, TypeError]): Объект класса ошибки.
+        message (str): Обяснение ошибки.
+    """
+
+    def __init__(
+        self,
+        err: Union[KeyError, TypeError],
+        message: str = 'Полученные данные содержат ошибку',
+    ) -> Exception:
+        self.err = err
+        self.message = message
+        super().__init__(
+            self.err,
+            self.message,
+        )
 
 
 @dataclass
@@ -13,10 +34,10 @@ class InfoMessage:
     calories: float
 
     def get_message(self) -> str:
-        """Получить информацию о тренировке.
+        """Формирует информацию о тренировке.
 
         Returns:
-            Возвращает строку, которая содержит: текущий тип тренировки,
+            Строку, которая содержит: текущий тип тренировки,
             длительность тренировки в часах, дистанция в км., среднюю скорость
             во время тренировки в км/ч и количество затраченных калорий.
         """
@@ -30,7 +51,13 @@ class InfoMessage:
 
 
 class Training:
-    """Базовый класс тренировки."""
+    """Базовый класс тренировки.
+
+    Args:
+        action (int): Количество совершённых действий.
+        duration (float): Длительность тренировки в часах.
+        weight (float): Вес спортсмена в кг.
+    """
 
     LEN_STEP = 0.65
     M_IN_KM = 1000
@@ -38,41 +65,46 @@ class Training:
 
     def __init__(
         self,
-        action: int,  # количество совершённых действий
-        duration: float,  # длительность тренировки в часах
-        weight: float,  # вес спортсмена  в кг
+        action: int,
+        duration: float,
+        weight: float,
     ) -> None:
         self.action = action
         self.duration = duration
         self.weight = weight
 
     def get_distance(self) -> float:
-        """Получить дистанцию в км.
+        """Формирует пройденную дистанцию в км.
 
         Returns:
-            Возвращает значение дистанции в км.
+            Значение дистанции в км.
         """
         return self.action * self.LEN_STEP / Training.M_IN_KM
 
     def get_mean_speed(self) -> float:
-        """Получить среднюю скорость движения.
+        """Формирует среднюю скорость движения.
 
         Returns:
-            Возвращает значение средней скорости во время тренировки в км/ч.
+            Значение средней скорости во время тренировки в км/ч.
         """
         return self.get_distance() / self.duration
 
     def get_spent_calories(self) -> float:
-        """Получить количество затраченных калорий."""
+        """Формирует количество затраченных калорий.
+
+        Raises:
+            NotImplementedError: Если данный метод не переопределен в
+            классах-наследниках.
+        """
         raise NotImplementedError(
-            'Необходимо переопределить метод get_spent_calories()'
+            'Необходимо переопределить метод get_spent_calories()',
         )
 
     def show_training_info(self) -> InfoMessage:
-        """Вернуть информационное сообщение о выполненной тренировке.
+        """Формирует информационное сообщение о выполненной тренировке.
 
         Returns:
-            Возвращает объект класса сообщения.
+            Объект класса сообщения.
         """
         return InfoMessage(
             type(self).__name__,
@@ -84,16 +116,22 @@ class Training:
 
 
 class Running(Training):
-    """Тренировка: бег."""
+    """Тренировка: бег.
+
+    Args:
+        action (int): Количество совершённых действий.
+        duration (float): Длительность тренировки в часах.
+        weight (float): Вес спортсмена в кг.
+    """
 
     CALORIES_MEAN_SPEED_MULTIPLIER = 18
     CALORIES_MEAN_SPEED_SHIFT = 1.79
 
     def get_spent_calories(self) -> float:
-        """Получить количество затраченных калорий.
+        """Формирует количество затраченных калорий.
 
         Returns:
-            Возвращает значение количества затраченных калорий во время
+            Значение количества затраченных калорий во время
             тренировки.
         """
         return (
@@ -109,7 +147,14 @@ class Running(Training):
 
 
 class SportsWalking(Training):
-    """Тренировка: спортивная ходьба."""
+    """Тренировка: спортивная ходьба.
+
+    Args:
+        action (int): Количество совершённых действий.
+        duration (float): Длительность тренировки в часах.
+        weight (float): Вес спортсмена в кг.
+        height (float): Рост спортсмена в см.
+    """
 
     CALORIES_WEIGHT_MULTIPLIER = 0.035
     CALORIES_SPEED_HEIGHT_MULTIPLIER = 0.029
@@ -118,19 +163,23 @@ class SportsWalking(Training):
 
     def __init__(
         self,
-        action: int,  # количество совершённых действий
-        duration: float,  # длительность тренировки в часах
-        weight: float,  # вес спортсмена в кг
-        height: float,  # рост спортсмена
+        action: int,
+        duration: float,
+        weight: float,
+        height: float,
     ) -> None:
-        super().__init__(action, duration, weight)
+        super().__init__(
+            action,
+            duration,
+            weight,
+        )
         self.height = height
 
     def get_spent_calories(self) -> float:
-        """Получить количество затраченных калорий.
+        """Формирует количество затраченных калорий.
 
         Returns:
-            Возвращает значение количества затраченных калорий во время
+            Значение количества затраченных калорий во время
             тренировки.
         """
         return (
@@ -149,7 +198,15 @@ class SportsWalking(Training):
 
 
 class Swimming(Training):
-    """Тренировка: плавание."""
+    """Тренировка: плавание.
+
+    Args:
+        action (int): Количество совершённых действий.
+        duration (float): Длительность тренировки в часах.
+        weight (float): Вес спортсмена в кг.
+        length_pool (float): Длина бассейна в метрах.
+        count_pool (float):  Сколько раз пользователь переплыл бассейн.
+    """
 
     LEN_STEP = 1.38
     CALORIES_MEAN_SPEED_SHIFT = 1.1
@@ -157,21 +214,25 @@ class Swimming(Training):
 
     def __init__(
         self,
-        action: int,  # количество совершённых действий
-        duration: float,  # длительность тренировки в часах
-        weight: float,  # вес спортсмена
-        length_pool: float,  # длина бассейна в метрах
-        count_pool: float,  # сколько раз переплыл бассейн
+        action: int,
+        duration: float,
+        weight: float,
+        length_pool: float,
+        count_pool: float,
     ) -> None:
-        super().__init__(action, duration, weight)
+        super().__init__(
+            action,
+            duration,
+            weight,
+        )
         self.length_pool = length_pool
         self.count_pool = count_pool
 
     def get_mean_speed(self) -> float:
-        """Получить среднюю скорость движения.
+        """Формирует среднюю скорость движения.
 
         Returns:
-            Возвращает значение средней скорости во время тренировки в км/ч.
+            Значение средней скорости во время тренировки в км/ч.
         """
         return (
             self.length_pool
@@ -181,10 +242,10 @@ class Swimming(Training):
         )
 
     def get_spent_calories(self) -> float:
-        """Получить количество затраченных калорий.
+        """Формирует количество затраченных калорий.
 
         Returns:
-            Возвращает значение количества затраченных калорий во время
+            Значение количества затраченных калорий во время
             тренировки.
         """
         return (
@@ -195,30 +256,40 @@ class Swimming(Training):
         )
 
 
-WORKOUT_CODE = {
+WORKOUT_CODES = {
     'RUN': Running,
     'WLK': SportsWalking,
     'SWM': Swimming,
 }
 
 
-def read_package(workout_type: str, data: List[int]) -> Training:
-    """Прочитать данные полученные от датчиков.
+def read_package(workout_type: str, data: List[float]) -> Training:
+    """Считывает данные полученные от датчиков.
 
     Args:
         workout_type (str): Кодовое обозначение прошедшей тренировки.
-        data (list[int]): Список показателей, полученных от датчиков
-        устройства.
+        data (List[float]): Список показателей, полученных от датчиков
+            устройства.
 
     Returns:
-        Возвращает объект соответствующего класса, передав ему на вход
+        Объект соответствующего класса, передав ему на вход
         параметры, полученные во втором аргументе.
     """
-    return WORKOUT_CODE[workout_type](*data)
+    try:
+        return WORKOUT_CODES[workout_type](*data)
+    except (KeyError, TypeError) as err:
+        raise InvalidInputDataError(err)
 
 
 def main(training: Training) -> None:
-    """Главная функция."""
+    """Главная функция.
+
+    Args:
+        training (Training): Объект класса тренировки.
+
+    Returns:
+        Информацию на экран о тренировке и её показателях.
+    """
     return print(training.show_training_info().get_message())
 
 
@@ -230,12 +301,4 @@ if __name__ == '__main__':
     ]
 
     for workout_type, data in packages:
-        try:
-            main(read_package(workout_type, data))
-        except KeyError:
-            print('Ошибка в кодовом обозначении!')
-        except TypeError:
-            print(
-                'Ошибка в списке показателей, полученных от датчиков '
-                'устройства!'
-            )
+        main(read_package(workout_type, data))
