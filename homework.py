@@ -1,27 +1,10 @@
-import traceback
+import csv
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List
 
 
 class InvalidInputDataError(Exception):
-    """Исключение, возникающее из-за ошибок в полученных данных от датчиков.
-
-    Args:
-        err (Union[KeyError, TypeError]): Объект класса ошибки.
-        message (str): Объяснение ошибки.
-    """
-
-    def __init__(
-        self,
-        err: Union[KeyError, TypeError],
-        message: str = 'Полученные данные содержат ошибку',
-    ) -> Exception:
-        self.err = err
-        self.message = message
-        super().__init__(
-            self.err,
-            self.message,
-        )
+    """Исключение, возникающее из-за ошибок в полученных данных от датчиков."""
 
 
 @dataclass
@@ -45,7 +28,7 @@ class InfoMessage:
         return (
             f'Тип тренировки: {self.training_type}; '
             f'Длительность: {self.duration:.3f} ч.; '
-            f'Дистанция: {self.distance:.3f} км; '
+            f'Дистанция: {self.distance:.3f} км.; '
             f'Ср. скорость: {self.speed:.3f} км/ч; '
             f'Потрачено ккал: {self.calories:.3f}.'
         )
@@ -95,14 +78,14 @@ class Training:
 
         Raises:
             NotImplementedError: Если данный метод не переопределен в
-            классах-наследниках.
+                классах-наследниках.
         """
         raise NotImplementedError(
             'Необходимо переопределить метод get_spent_calories()',
         )
 
     def show_training_info(self) -> InfoMessage:
-        """Формирует информационное сообщение о выполненной тренировке.
+        """Передаёт данные в класс InfoMessage для формирования сообщения.
 
         Returns:
             Объект класса сообщения.
@@ -275,6 +258,10 @@ def read_package(workout_type: str, data: List[float]) -> Training:
     Returns:
         Объект соответствующего класса, передав ему на вход
         параметры, полученные во втором аргументе.
+
+    Raises:
+        InvalidInputDataError: Если имеются ошибки в кодовом обозначении
+            прошедшей тренировки или списке показателей.
     """
     try:
         return WORKOUT_CODES[workout_type](*data)
@@ -291,18 +278,20 @@ def main(training: Training) -> None:
     Returns:
         Информацию на экран о тренировке и её показателях.
     """
-    return print(training.show_training_info().get_message())
+    print(training.show_training_info().get_message())
 
 
 if __name__ == '__main__':
-    packages = [
-        ('SWM', [720, 1, 80, 25, 40]),
-        ('RUN', [15000, 1, 75]),
-        ('WLK', [9000, 1, 75, 180]),
-    ]
-
-    for workout_type, data in packages:
-        try:
-            main(read_package(workout_type, data))
-        except InvalidInputDataError:
-            print(traceback.format_exc())
+    with open('packages.csv') as reader:
+        packages = csv.reader(reader, delimiter=',')
+        for row in packages:
+            workout_type, *data = row
+            try:
+                main(
+                    read_package(
+                        workout_type,
+                        [float(item) for item in data],
+                    ),
+                )
+            except (InvalidInputDataError, ValueError) as err:
+                print(f'Неправильные входные данные: {err}')
